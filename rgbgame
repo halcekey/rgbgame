@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="https://halcekey.github.io/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="https://halcekey.github.io/favicon.svg">
+    <title>RGB Game</title>
+    <style>
+        body {
+            font-family: 'Noto Sans', sans-serif;;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #667eea;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .game-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .color-square {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border: 3px solid #333;
+            border-radius: 10px;
+        }
+
+        .input-group {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        input[type="number"] {
+            width: 70px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        input[type="number"]:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 10px 5px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .score-display {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .score-breakdown {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .actual-color {
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .share-button {
+            background: #28a745;
+        }
+
+        .share-button:hover {
+            background: #218838;
+        }
+
+        .copied-message {
+            color: #28a745;
+            font-weight: bold;
+            margin-top: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .copied-message.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>RGB Game</h1>
+        
+        <div class="color-square" id="colorSquare"></div>
+        
+        <div class="input-group">
+            <div class="input-container">
+                <label for="redGuess">R</label>
+                <input type="number" id="redGuess" min="0" max="255" placeholder="0-255">
+            </div>
+            <div class="input-container">
+                <label for="greenGuess">G</label>
+                <input type="number" id="greenGuess" min="0" max="255" placeholder="0-255">
+            </div>
+            <div class="input-container">
+                <label for="blueGuess">B</label>
+                <input type="number" id="blueGuess" min="0" max="255" placeholder="0-255">
+            </div>
+        </div>
+        
+        <button id="guessButton" onclick="makeGuess()">Guess!</button>
+        
+        <div id="scoreDisplay" class="score-display hidden">
+            <div class="score" id="scoreText"></div>
+            <div class="score-breakdown" id="scoreBreakdown"></div>
+            <div class="actual-color" id="actualColor"></div>
+        </div>
+        
+        <div id="gameButtons" class="hidden">
+            <button onclick="newGame()">New Game</button>
+            <button class="share-button" onclick="shareScore()">Share Score</button>
+        </div>
+        
+        <div id="copiedMessage" class="copied-message">Score copied to clipboard!</div>
+    </div>
+
+    <script>
+        let currentColor = { r: 0, g: 0, b: 0 };
+        let currentScore = 0;
+        let scoreBreakdown = { r: 0, g: 0, b: 0 };
+
+        function generateRandomColor() {
+            currentColor = {
+                r: Math.floor(Math.random() * 256),
+                g: Math.floor(Math.random() * 256),
+                b: Math.floor(Math.random() * 256)
+            };
+            
+            const colorSquare = document.getElementById('colorSquare');
+            colorSquare.style.backgroundColor = `rgb(${currentColor.r}, ${currentColor.g}, ${currentColor.b})`;
+        }
+
+        function calculateScore(guessR, guessG, guessB) {
+            const redScore = 255 - Math.abs(guessR - currentColor.r);
+            const greenScore = 255 - Math.abs(guessG - currentColor.g);
+            const blueScore = 255 - Math.abs(guessB - currentColor.b);
+            
+            scoreBreakdown = {
+                r: redScore,
+                g: greenScore,
+                b: blueScore
+            };
+            
+            const totalScore = (redScore + greenScore + blueScore) / 765 * 100;
+            
+            return Math.round(totalScore * 100) / 100; 
+        }
+
+        function makeGuess() {
+            const redGuess = parseInt(document.getElementById('redGuess').value);
+            const greenGuess = parseInt(document.getElementById('greenGuess').value);
+            const blueGuess = parseInt(document.getElementById('blueGuess').value);
+            
+            if (isNaN(redGuess) || isNaN(greenGuess) || isNaN(blueGuess)) {
+                alert('Please enter valid numbers for all RGB values (0-255)');
+                return;
+            }
+            
+            if (redGuess < 0 || redGuess > 255 || 
+                greenGuess < 0 || greenGuess > 255 || 
+                blueGuess < 0 || blueGuess > 255) {
+                alert('RGB values must be between 0 and 255');
+                return;
+            }
+            
+            currentScore = calculateScore(redGuess, greenGuess, blueGuess);
+            
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            const scoreText = document.getElementById('scoreText');
+            const scoreBreakdownElement = document.getElementById('scoreBreakdown');
+            const actualColor = document.getElementById('actualColor');
+            const gameButtons = document.getElementById('gameButtons');
+            const guessButton = document.getElementById('guessButton');
+            
+            scoreText.textContent = `Score: ${currentScore}%`;
+            
+            scoreBreakdownElement.innerHTML = `
+                <strong>Score Breakdown:</strong><br>
+                Red: ${scoreBreakdown.r}/255 (diff: ${Math.abs(redGuess - currentColor.r)})<br>
+                Green: ${scoreBreakdown.g}/255 (diff: ${Math.abs(greenGuess - currentColor.g)})<br>
+                Blue: ${scoreBreakdown.b}/255 (diff: ${Math.abs(blueGuess - currentColor.b)})
+            `;
+            
+            actualColor.innerHTML = `
+                <strong>Actual RGB:</strong> (${currentColor.r}, ${currentColor.g}, ${currentColor.b})<br>
+                <strong>Your guess:</strong> (${redGuess}, ${greenGuess}, ${blueGuess})
+            `;
+            
+            scoreDisplay.classList.remove('hidden');
+            gameButtons.classList.remove('hidden');
+            guessButton.disabled = true;
+            
+            document.getElementById('redGuess').disabled = true;
+            document.getElementById('greenGuess').disabled = true;
+            document.getElementById('blueGuess').disabled = true;
+        }
+
+        function newGame() {
+            generateRandomColor();
+            
+            document.getElementById('redGuess').value = '';
+            document.getElementById('greenGuess').value = '';
+            document.getElementById('blueGuess').value = '';
+            
+            document.getElementById('redGuess').disabled = false;
+            document.getElementById('greenGuess').disabled = false;
+            document.getElementById('blueGuess').disabled = false;
+            document.getElementById('guessButton').disabled = false;
+            
+            document.getElementById('scoreDisplay').classList.add('hidden');
+            document.getElementById('gameButtons').classList.add('hidden');
+            
+            document.getElementById('copiedMessage').classList.remove('show');
+        }
+
+        function shareScore() {
+            const shareText = `RGB Game 
+I scored ${currentScore}%! 
+
+Actual color: RGB(${currentColor.r}, ${currentColor.g}, ${currentColor.b}) 
+My guess: RGB(${document.getElementById('redGuess').value}, ${document.getElementById('greenGuess').value}, ${document.getElementById('blueGuess').value}) 
+
+Score breakdown: 
+Red: ${scoreBreakdown.r}/255 
+Green: ${scoreBreakdown.g}/255 
+Blue: ${scoreBreakdown.b}/255 
+
+Play now! halcekey.github.io/rgbgame/`;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    showCopiedMessage();
+                }).catch(() => {
+                    fallbackCopy(shareText);
+                });
+            } else {
+                fallbackCopy(shareText);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showCopiedMessage();
+            } catch (err) {
+                alert('Unable to copy to clipboard. Please copy manually:\n\n' + text);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showCopiedMessage() {
+            const message = document.getElementById('copiedMessage');
+            message.classList.add('show');
+            setTimeout(() => {
+                message.classList.remove('show');
+            }, 2000);
+        }
+
+        generateRandomColor();
+
+        document.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && !document.getElementById('guessButton').disabled) {
+                makeGuess();
+            }
+        });
+    </script>
+</body>
+</html>
